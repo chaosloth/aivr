@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 
 import Jimp from "jimp";
-import OpenAI from "openai";
+import OpenAI, { Configuration, OpenAIApi } from "openai";
 import { supabase } from "./_supabase";
 import { v4 as uuidv4 } from "uuid";
 import twilio from "twilio";
@@ -13,16 +13,21 @@ const generateImage = async (prompt: string, to: string) => {
     //
     // GENERATE IMAGE
     //
-    const openai = new OpenAI();
-    const image_response = await openai.images.generate({
-      prompt: prompt,
+    const config = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAIApi(config);
+    const image_response = await openai.createImage({
+      prompt,
+      n: 1,
       size: "512x512",
     });
+
+    const dataURL = image_response.data.data[0].url;
+    console.log("Image generation url", dataURL);
 
     //
     // COMPOSITE IMAGE
     //
-    const image_target = await Jimp.read(image_response.data[0].url);
+    const image_target = await Jimp.read(dataURL);
     const image_mask = await Jimp.read("https://images-5674.twil.io/mask.png");
     image_target.blit(image_mask, 0, 0);
 
